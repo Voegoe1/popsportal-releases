@@ -213,7 +213,16 @@ def build_message(product: dict) -> dict:
 
 
 # ---------- Discord ----------
-def post_to_discord(message: dict) -> None:
+def webhook_info() -> dict:
+    """Naam, server en kanaal van de webhook (zonder geheime token te tonen)."""
+    try:
+        resp = requests.get(WEBHOOK_URL, timeout=15)
+        return resp.json() if resp.status_code == 200 else {"fout": resp.status_code}
+    except Exception as exc:
+        return {"fout": str(exc)}
+
+
+def post_to_discord(message: dict, guild_id: str | None = None) -> None:
     for _ in range(5):
         resp = requests.post(
             WEBHOOK_URL, params={"wait": "true"}, json=message, timeout=30,
@@ -224,6 +233,12 @@ def post_to_discord(message: dict) -> None:
             continue
         if resp.status_code >= 400:
             raise RuntimeError(f"Discord gaf {resp.status_code}: {resp.text[:300]}")
+        try:
+            msg = resp.json()
+            print(f"  Bericht staat hier: https://discord.com/channels/"
+                  f"{guild_id or '@me'}/{msg.get('channel_id')}/{msg.get('id')}")
+        except ValueError:
+            pass
         return
     raise RuntimeError("Discord blijft rate-limiten, later opnieuw.")
 
@@ -261,9 +276,16 @@ def main() -> int:
     print(f"{len(products)} producten gecheckt, {len(new)} nieuw.")
 
     exit_code = 0
+    guild_id = None
+    if new:
+        info = webhook_info()
+        guild_id = info.get("guild_id")
+        print(f"Webhook: naam '{info.get('name')}', server {guild_id}, "
+              f"kanaal {info.get('channel_id')}"
+              f"{', fout ' + str(info['fout']) if 'fout' in info else ''}")
     for product in new[:MAX_POSTS_PER_RUN]:
         try:
-            post_to_discord(build_message(product))
+            post_to_discord(build_message(product), guild_id)
         except Exception as exc:
             print(f"Posten mislukt, volgende run opnieuw: {exc}")
             exit_code = 1
