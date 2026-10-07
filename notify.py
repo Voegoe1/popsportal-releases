@@ -27,7 +27,7 @@ WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
 
 SHOP_NAME = os.getenv("SHOP_NAME") or "PopsPortal"
 SHOP_ICON_URL = os.getenv("SHOP_ICON_URL") or None            # logo naast "PopsPortal"
-ACCOUNT_URL = os.getenv("ACCOUNT_URL") or f"{WC_URL}/mijn-account/"
+ACCOUNT_URL = os.getenv("ACCOUNT_URL") or f"{WC_URL}/my-account/"
 TIP_TEXT = os.getenv("TIP_TEXT") or (
     f"[Maak een account aan]({ACCOUNT_URL}) en spaar 5% van je uitgaven "
     "terug in PortalPoints"
