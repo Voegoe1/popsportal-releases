@@ -1,4 +1,5 @@
 name: Release notifier
+# Checkt PopsPortal op nieuwe releases en post ze in Discord
 
 on:
   schedule:
