@@ -32,8 +32,6 @@ jobs:
         run: python notify.py
         env:
           WC_URL: ${{ secrets.WC_URL }}
-          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
-          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           # Optioneel, onder Settings > Secrets and variables > Actions > Variables
           SHOP_ICON_URL: ${{ vars.SHOP_ICON_URL }}
