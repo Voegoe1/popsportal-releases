@@ -20,7 +20,9 @@ from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 import requests
 
 # ---------- Instellingen (GitHub Secrets / Variables) ----------
-WC_URL = os.environ["WC_URL"].rstrip("/")
+WC_URL = os.environ["WC_URL"].strip().rstrip("/")
+if not WC_URL.startswith("http"):
+    WC_URL = "https://" + WC_URL
 WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
 
 SHOP_NAME = os.getenv("SHOP_NAME") or "PopsPortal"
@@ -80,7 +82,18 @@ def fetch_latest_products() -> list[dict]:
             params=params, headers=HEADERS, timeout=30,
         )
         resp.raise_for_status()
-        batch = resp.json()
+        try:
+            batch = resp.json()
+        except ValueError:
+            body = " ".join(resp.text.split())[:300]
+            server = resp.headers.get("server", "?")
+            cf = "ja" if resp.headers.get("cf-ray") or "cloudflare" in server.lower() else "nee"
+            raise RuntimeError(
+                f"Geen productlijst ontvangen. Status {resp.status_code}, "
+                f"type {resp.headers.get('content-type', '?')}, server {server}, "
+                f"via Cloudflare: {cf}, doorgestuurd: {'ja' if resp.history else 'nee'}, "
+                f"pad: {urlsplit(resp.url).path}. Begin van het antwoord: {body!r}"
+            )
         if not isinstance(batch, list):
             raise RuntimeError(f"Onverwacht antwoord van de shop: {str(batch)[:200]}")
         products.extend(batch)
