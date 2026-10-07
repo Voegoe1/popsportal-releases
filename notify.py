@@ -45,6 +45,12 @@ STATE_FILE = Path("seen_products.json")
 MAX_TRACKED = 5000
 PAGES_TO_CHECK = 1          # 1 x 100 nieuwste producten per run
 MAX_POSTS_PER_RUN = 100     # veiligheidsrem tegen spam
+FETCH_ATTEMPTS = 3          # opnieuw proberen bij een botcontrole van de hosting
+RETRY_WAIT = 20             # seconden tussen pogingen
+
+
+class ShopBlocked(Exception):
+    """Hosting of firewall gaf een botcontrole in plaats van de productlijst."""
 
 # Vaste, herkenbare naam: hiermee kun je de bot in Cloudflare toestaan
 HEADERS = {
@@ -77,21 +83,36 @@ def fetch_latest_products() -> list[dict]:
         params = {"orderby": "date", "order": "desc", "per_page": 100, "page": page}
         if CATEGORY_ID:
             params["category"] = CATEGORY_ID
-        resp = requests.get(
-            f"{WC_URL}/wp-json/wc/store/v1/products",
-            params=params, headers=HEADERS, timeout=30,
-        )
-        resp.raise_for_status()
-        try:
-            batch = resp.json()
-        except ValueError:
+        batch = None
+        for attempt in range(1, FETCH_ATTEMPTS + 1):
+            resp = requests.get(
+                f"{WC_URL}/wp-json/wc/store/v1/products",
+                params=params, headers=HEADERS, timeout=30,
+            )
+            try:
+                batch = resp.json() if resp.status_code == 200 else None
+            except ValueError:
+                batch = None
+            if batch is not None:
+                break
             body = " ".join(resp.text.split())[:300]
-            server = resp.headers.get("server", "?")
-            cf = "ja" if resp.headers.get("cf-ray") or "cloudflare" in server.lower() else "nee"
+            blocked = (resp.status_code in (202, 403, 429, 503)
+                       or "sgcaptcha" in body or "Just a moment" in body)
+            print(f"Poging {attempt}: geen productlijst (status {resp.status_code}"
+                  f"{', botcontrole' if blocked else ''}).")
+            if attempt < FETCH_ATTEMPTS:
+                time.sleep(RETRY_WAIT)
+                continue
+            if blocked:
+                raise ShopBlocked(
+                    "De hosting/beveiliging toonde een botcontrole "
+                    f"({'SiteGround sgcaptcha' if 'sgcaptcha' in body else 'status ' + str(resp.status_code)}). "
+                    "Volgende run probeert het opnieuw; er gaat niets verloren."
+                )
             raise RuntimeError(
                 f"Geen productlijst ontvangen. Status {resp.status_code}, "
-                f"type {resp.headers.get('content-type', '?')}, server {server}, "
-                f"via Cloudflare: {cf}, doorgestuurd: {'ja' if resp.history else 'nee'}, "
+                f"type {resp.headers.get('content-type', '?')}, "
+                f"server {resp.headers.get('server', '?')}, "
                 f"pad: {urlsplit(resp.url).path}. Begin van het antwoord: {body!r}"
             )
         if not isinstance(batch, list):
@@ -213,6 +234,11 @@ def main() -> int:
 
     try:
         products = fetch_latest_products()
+    except ShopBlocked as exc:
+        # Geen rode run (en geen mail) voor een tijdelijke botcontrole:
+        # alleen een waarschuwing. De volgende run pakt alles alsnog op.
+        print(f"::warning::{exc}")
+        return 0
     except requests.HTTPError as exc:
         code = exc.response.status_code if exc.response is not None else "?"
         hint = ""
