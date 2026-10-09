@@ -39,9 +39,10 @@ PREORDER_WORDS = [w.strip().lower() for w in
 CURRENCY = os.getenv("CURRENCY_SYMBOL") or "€"
 EMBED_COLOR = int((os.getenv("EMBED_COLOR") or "57F287").lstrip("#"), 16)
 UTM = os.getenv("UTM_PARAMS", "utm_source=discord&utm_medium=social&utm_campaign=new_release")
-# Rol die achter de productnaam getagd wordt (voorlopig @beheerder).
-# Alleen cijfers; leeg = geen tag.
-ROLE_ID = (os.getenv("DISCORD_NOTIFICATION_ROLE_ID") or "").strip().lstrip("<@&").rstrip(">") or None
+# Rol die achter de productnaam getagd wordt. Standaard @Beheerder;
+# overschrijf met GitHub-variabele DISCORD_NOTIFICATION_ROLE_ID (alleen cijfers).
+DEFAULT_ROLE_ID = "1075853984901906482"
+ROLE_ID = (os.getenv("DISCORD_NOTIFICATION_ROLE_ID") or DEFAULT_ROLE_ID).strip().lstrip("<@&").rstrip(">") or None
 if ROLE_ID and not ROLE_ID.isdigit():
     print(f"::warning::DISCORD_NOTIFICATION_ROLE_ID '{ROLE_ID}' is geen geldige rol-ID (alleen cijfers); er wordt niemand getagd.")
     ROLE_ID = None
