@@ -243,10 +243,11 @@ def post_to_discord(message: dict, guild_id: str | None = None) -> None:
             raise RuntimeError(f"Discord gaf {resp.status_code}: {resp.text[:300]}")
         try:
             msg = resp.json()
+        except ValueError:
+            msg = None
+        if isinstance(msg, dict):
             print(f"  Bericht staat hier: https://discord.com/channels/"
                   f"{guild_id or '@me'}/{msg.get('channel_id')}/{msg.get('id')}")
-        except ValueError:
-            pass
         return
     raise RuntimeError("Discord blijft rate-limiten, later opnieuw.")
 
