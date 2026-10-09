@@ -224,7 +224,8 @@ def webhook_info() -> dict:
     """Naam, server en kanaal van de webhook (zonder geheime token te tonen)."""
     try:
         resp = requests.get(WEBHOOK_URL, timeout=15)
-        return resp.json() if resp.status_code == 200 else {"fout": resp.status_code}
+        data = resp.json() if resp.status_code == 200 else None
+        return data if isinstance(data, dict) else {"fout": resp.status_code}
     except Exception as exc:
         return {"fout": str(exc)}
 
