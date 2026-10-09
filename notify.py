@@ -39,7 +39,12 @@ PREORDER_WORDS = [w.strip().lower() for w in
 CURRENCY = os.getenv("CURRENCY_SYMBOL") or "€"
 EMBED_COLOR = int((os.getenv("EMBED_COLOR") or "57F287").lstrip("#"), 16)
 UTM = os.getenv("UTM_PARAMS", "utm_source=discord&utm_medium=social&utm_campaign=new_release")
-ROLE_ID = os.getenv("DISCORD_ROLE_ID") or None                 # optioneel: rol taggen
+# Rol die achter de productnaam getagd wordt (voorlopig @beheerder).
+# Alleen cijfers; leeg = geen tag.
+ROLE_ID = (os.getenv("DISCORD_NOTIFICATION_ROLE_ID") or "").strip().lstrip("<@&").rstrip(">") or None
+if ROLE_ID and not ROLE_ID.isdigit():
+    print(f"::warning::DISCORD_NOTIFICATION_ROLE_ID '{ROLE_ID}' is geen geldige rol-ID (alleen cijfers); er wordt niemand getagd.")
+    ROLE_ID = None
 
 STATE_FILE = Path("seen_products.json")
 MAX_TRACKED = 5000
@@ -203,12 +208,13 @@ def build_message(product: dict) -> dict:
 
     content = name[:1900]
     if ROLE_ID:
-        content = f"<@&{ROLE_ID}> {content}"
+        content = f"{content} <@&{ROLE_ID}>"
 
     return {
         "content": content,
         "embeds": [embed],
-        "allowed_mentions": {"roles": [ROLE_ID] if ROLE_ID else []},
+        # Alleen deze ene rol mag gepingd worden; geen @everyone/@here of users
+        "allowed_mentions": {"parse": [], "roles": [ROLE_ID] if ROLE_ID else []},
     }
 
 

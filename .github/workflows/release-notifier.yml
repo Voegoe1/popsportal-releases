@@ -38,7 +38,7 @@ jobs:
           ACCOUNT_URL: ${{ vars.ACCOUNT_URL }}
           TIP_TEXT: ${{ vars.TIP_TEXT }}
           PREORDER_WORDS: ${{ vars.PREORDER_WORDS }}
-          DISCORD_ROLE_ID: ${{ vars.DISCORD_ROLE_ID }}
+          DISCORD_NOTIFICATION_ROLE_ID: ${{ vars.DISCORD_NOTIFICATION_ROLE_ID }}
           WC_CATEGORY_ID: ${{ vars.WC_CATEGORY_ID }}
           EMBED_COLOR: ${{ vars.EMBED_COLOR }}
 
